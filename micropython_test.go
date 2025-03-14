@@ -1,6 +1,7 @@
 package micropythongo
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -17,5 +18,12 @@ func TestParseList(t *testing.T) {
 		if v != expected[i] {
 			t.Errorf("parsed list has incorrect value at index %d: got %v, want %v", i, v, expected[i])
 		}
+	}
+
+	parsed = parsePythonList("")
+	check := []string{}
+
+	if !reflect.DeepEqual(parsed, check) {
+		t.Error("failed to recognixe empty string")
 	}
 }
