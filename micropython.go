@@ -2,6 +2,7 @@ package micropythongo
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -12,6 +13,36 @@ import (
 type MicroPyDevice struct {
 	Port       *serial.Port // Pointer to a serial port
 	MPYVersion string       // MicroPython Version
+}
+
+// Parse a list or tuple from Python
+func parsePythonList(input string) []string {
+	// Handle both list and tuple syntax
+	input = strings.TrimSpace(input)
+
+	// Remove the outer brackets/parentheses
+	if (strings.HasPrefix(input, "[") && strings.HasSuffix(input, "]")) ||
+		(strings.HasPrefix(input, "(") && strings.HasSuffix(input, ")")) {
+		input = input[1 : len(input)-1]
+	}
+
+	// Handle empty list/tuple
+	if len(input) == 0 {
+		return []string{}
+	}
+
+	// Extract quoted strings
+	re := regexp.MustCompile(`'[^']*'|"[^"]*"`)
+	matches := re.FindAllString(input, -1)
+
+	result := make([]string, 0, len(matches))
+	for _, match := range matches {
+		// Remove the quotes
+		cleaned := match[1 : len(match)-1]
+		result = append(result, cleaned)
+	}
+
+	return result
 }
 
 // Connect to a MicroPython device using serial. Returns with a MicroPyDevice.
@@ -90,21 +121,7 @@ func (device MicroPyDevice) ListFiles(directory string) ([]string, error) {
 	// Convert the buffer
 	response := string(buf[:n])
 
-	// Remove the square brackets
-	trimmed := strings.Trim(response, "[]")
-
-	// Split by comma
-	parts := strings.Split(trimmed, ",")
-
-	// Clean up each element
-	var files []string
-	for _, part := range parts {
-		// Remove quotes and whitespace
-		cleaned := strings.Trim(part, " '\"")
-		if cleaned != "" {
-			files = append(files, cleaned)
-		}
-	}
+	files := parsePythonList(response)
 
 	return files, nil
 }
